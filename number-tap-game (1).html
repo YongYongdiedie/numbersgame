@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>숫자 탭 게임</title>
+<style>
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f3;
+    --bg3: #ededea;
+    --text: #1a1a1a;
+    --text2: #666660;
+    --border: rgba(0,0,0,0.15);
+    --border2: rgba(0,0,0,0.25);
+    --success-bg: #eaf3de;
+    --success-border: rgba(59,109,17,0.3);
+    --success-text: #27500a;
+    --danger: #e24b4a;
+    --info: #185fa5;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a;
+      --bg2: #252525;
+      --bg3: #2e2e2e;
+      --text: #f0f0ee;
+      --text2: #999990;
+      --border: rgba(255,255,255,0.12);
+      --border2: rgba(255,255,255,0.22);
+      --success-bg: #173404;
+      --success-border: rgba(150,210,80,0.25);
+      --success-text: #c0dd97;
+      --danger: #f09595;
+      --info: #85b7eb;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+  #app {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 2rem;
+    min-height: 100vh;
+  }
+
+  /* ── 닉네임 화면 ── */
+  #nickname-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 3rem;
+    gap: 0;
+  }
+  .game-title {
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .game-sub {
+    font-size: 14px;
+    color: var(--text2);
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+  #nickname-screen label {
+    font-size: 13px;
+    color: var(--text2);
+    align-self: flex-start;
+    margin-bottom: 6px;
+    width: 100%;
+    max-width: 300px;
+  }
+  #nickname-input {
+    width: 100%;
+    max-width: 300px;
+    font-size: 17px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2);
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    margin-bottom: 14px;
+    -webkit-appearance: none;
+  }
+  #nickname-input:focus {
+    border-color: var(--info);
+    box-shadow: 0 0 0 3px rgba(24,95,165,0.12);
+  }
+  #nickname-ok {
+    width: 100%;
+    max-width: 300px;
+    padding: 13px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2);
+    background: var(--text);
+    color: var(--bg);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  #nickname-ok:active { opacity: 0.8; transform: scale(0.98); }
+
+  /* ── 게임 화면 ── */
+  #game-screen { display: none; }
+
+  #header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  #nick-badge {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #timer {
+    font-size: 28px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+    min-width: 86px;
+    text-align: right;
+  }
+  #start-btn {
+    padding: 9px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    touch-action: manipulation;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #start-btn:active { background: var(--bg3); }
+  #start-btn:disabled { opacity: 0.35; }
+
+  #countdown {
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 58px;
+    font-weight: 700;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .card {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 600;
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border2);
+    background: var(--bg);
+    color: var(--text);
+    user-select: none;
+    touch-action: manipulation;
+    cursor: pointer;
+    transition: background 0.08s, transform 0.08s;
+    -webkit-user-select: none;
+  }
+  .card:active { transform: scale(0.93); background: var(--bg3); }
+  .card.done {
+    background: var(--success-bg);
+    border-color: var(--success-border);
+    color: var(--success-text);
+    cursor: default;
+  }
+  .card.done:active { transform: none; }
+  .card.hidden { color: transparent !important; cursor: default; }
+  .card.wrong { animation: shake .38s; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-9px)}
+    40%{transform:translateX(9px)}
+    60%{transform:translateX(-6px)}
+    80%{transform:translateX(6px)}
+  }
+
+  #msg {
+    min-height: 20px;
+    font-size: 13px;
+    color: var(--danger);
+    text-align: center;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+  }
+
+  /* ── 결과 박스 ── */
+  #result-box {
+    background: var(--bg2);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+    display: none;
+    margin-top: 0.5rem;
+  }
+  #result-box .lbl {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 4px;
+  }
+  #result-box .val {
+    font-size: 38px;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    font-variant-numeric: tabular-nums;
+  }
+  #save-status {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 0.75rem;
+    min-height: 16px;
+  }
+  #restart-btn {
+    padding: 11px 32px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  #restart-btn:active { background: var(--bg3); }
+
+  /* ── 랭킹 ── */
+  #leaderboard {
+    margin-top: 1.5rem;
+    border-top: 0.5px solid var(--border);
+    padding-top: 1.25rem;
+    text-align: left;
+  }
+  #leaderboard h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 0.75rem;
+    text-align: center;
+    text-transform: none;
+  }
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 14px;
+  }
+  .lb-rank {
+    width: 24px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--text2);
+    flex-shrink: 0;
+  }
+  .lb-rank.top { color: #ba7517; }
+  .lb-name { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-time { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+  .lb-row.me .lb-name, .lb-row.me .lb-time { color: var(--info); }
+  .lb-row.me .lb-rank { color: var(--info); }
+
+  /* ── 랭킹 팝업 ── */
+  #popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  #popup-overlay.show { display: flex; }
+  #popup-box {
+    background: var(--bg);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border2);
+    width: 100%;
+    max-width: 360px;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 1.5rem 1.25rem 1.25rem;
+    -webkit-overflow-scrolling: touch;
+    animation: popIn 0.2s ease;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  #popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+  }
+  #popup-header h2 { font-size: 17px; font-weight: 700; }
+  #popup-close {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    border: none; background: var(--bg3);
+    color: var(--text2); font-size: 18px;
+    cursor: pointer; touch-action: manipulation; flex-shrink: 0;
+  }
+  #popup-my-result {
+    text-align: center;
+    padding: 0.75rem 0 1rem;
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 1rem;
+  }
+  #popup-my-result .my-lbl { font-size: 12px; color: var(--text2); margin-bottom: 2px; }
+  #popup-my-result .my-time { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #popup-my-result .my-rank { font-size: 13px; color: var(--text2); margin-top: 5px; }
+  #popup-my-result .my-rank span { color: var(--info); font-weight: 700; }
+  #popup-lb-title { font-size: 13px; font-weight: 600; color: var(--text2); text-align: center; margin-bottom: 0.75rem; }
+  #popup-restart {
+    display: block; width: 100%; margin-top: 1.25rem;
+    padding: 12px; font-size: 15px; font-weight: 600;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2);
+    background: var(--text); color: var(--bg);
+    cursor: pointer; touch-action: manipulation;
+  }
+  #popup-restart:active { opacity: 0.8; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 닉네임 입력 화면 -->
+  <div id="nickname-screen">
+    <div class="game-title">숫자 탭 게임</div>
+    <div class="game-sub">1부터 9까지 순서대로 빠르게 눌러보세요</div>
+    <label for="nickname-input">닉네임</label>
+    <input id="nickname-input" type="text" maxlength="12" placeholder="최대 12자" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <button id="nickname-ok">시작하기</button>
+  </div>
+
+  <!-- 게임 화면 -->
+  <div id="game-screen">
+    <div id="header">
+      <span id="nick-badge"></span>
+      <div id="timer">00.00</div>
+      <button id="start-btn">시작</button>
+    </div>
+    <div id="countdown"></div>
+    <div id="grid"></div>
+    <div id="msg"></div>
+    <div id="result-box">
+      <div class="lbl">완료 시간</div>
+      <div class="val" id="final-time">—</div>
+      <div id="save-status"></div>
+      <button id="restart-btn">다시 시작</button>
+      <div id="leaderboard"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 랭킹 팝업 -->
+<div id="popup-overlay">
+  <div id="popup-box">
+    <div id="popup-header">
+      <h2>결과</h2>
+      <button id="popup-close" aria-label="닫기">✕</button>
+    </div>
+    <div id="popup-my-result">
+      <div class="my-lbl">내 기록</div>
+      <div class="my-time" id="popup-my-time">—</div>
+      <div class="my-rank" id="popup-my-rank"></div>
+    </div>
+    <div id="popup-lb-title">랭킹 TOP 10</div>
+    <div id="popup-lb-rows"></div>
+    <button id="popup-restart">다시 시작</button>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, push, query, orderByChild, limitToFirst, get }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     🔧 여기에 Firebase 설정을 붙여넣으세요
+     Firebase Console → 프로젝트 설정 → 앱 등록 → SDK 스니펫
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  const firebaseConfig = {
+    apiKey: "AIzaSyBJo2oGZEwzjrIoT4iTV6RtUznFIZv9WBI",
+    authDomain: "number-test-game-c8fd4.firebaseapp.com",
+    databaseURL: "https://number-test-game-c8fd4-default-rtdb.asia-southeast1.firebasedatabase.app/",
+    projectId: "number-test-game-c8fd4",
+    storageBucket: "number-test-game-c8fd4.firebasestorage.app",
+    messagingSenderId: "318040013546",
+    appId: "1:318040013546:web:7cdd233e8a13655249f593"
+  };
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+  const isConfigured = !firebaseConfig.apiKey.includes("YOUR_");
+  let db = null;
+  if (isConfigured) {
+    const app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+  }
+
+  window._fbSaveScore = async (name, ms) => {
+    if (!db) return false;
+    await push(ref(db, 'scores'), { name, ms, t: Date.now() });
+    return true;
+  };
+
+  window._fbLoadLeaderboard = async () => {
+    if (!db) return null;
+    const q = query(ref(db, 'scores'), orderByChild('ms'), limitToFirst(50));
+    const snap = await get(q);
+    if (!snap.exists()) return [];
+    const rows = [];
+    snap.forEach(c => rows.push(c.val()));
+    rows.sort((a, b) => a.ms - b.ms);
+    return rows.slice(0, 10);
+  };
+
+  window._fbConfigured = isConfigured;
+</script>
+
+<script>
+  const $ = id => document.getElementById(id);
+  let nickname = '';
+  let cards = [];
+  let nextExp = 1;
+  let timerInt = null;
+  let startMs = null;
+  let elapsed = 0;
+  let gameActive = false;
+
+  function fmt(ms) {
+    const s = Math.floor(ms / 1000);
+    const cs = Math.floor((ms % 1000) / 10);
+    return String(s).padStart(2, '0') + '.' + String(cs).padStart(2, '0');
+  }
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  /* ── 닉네임 확인 ── */
+  $('nickname-ok').addEventListener('click', () => {
+    const v = $('nickname-input').value.trim();
+    if (!v) { $('nickname-input').focus(); return; }
+    nickname = v;
+    $('nickname-screen').style.display = 'none';
+    $('game-screen').style.display = 'block';
+    $('nick-badge').textContent = nickname;
+    buildGrid(false);
+  });
+  $('nickname-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('nickname-ok').click();
+  });
+
+  /* ── 그리드 구성 ── */
+  function buildGrid(hidden) {
+    const grid = $('grid');
+    grid.innerHTML = ''; cards = [];
+    const nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    nums.forEach(n => {
+      const d = document.createElement('div');
+      d.className = 'card' + (hidden ? ' hidden' : '');
+      d.textContent = n;
+      d.dataset.num = n;
+      const onTap = e => { e.preventDefault(); onCard(d, n); };
+      d.addEventListener('touchend', onTap, { passive: false });
+      d.addEventListener('click', onTap);
+      grid.appendChild(d);
+      cards.push(d);
+    });
+  }
+
+  /* ── 카드 탭 처리 ── */
+  function onCard(d, n) {
+    if (!gameActive) return;
+    if (n !== nextExp) {
+      d.classList.add('wrong');
+      setTimeout(() => d.classList.remove('wrong'), 380);
+      $('msg').textContent = '틀렸어요! 처음부터 다시 시작합니다...';
+      gameActive = false;
+      stopTimer();
+      setTimeout(() => resetToReady(), 950);
+      return;
+    }
+    d.classList.add('done');
+    nextExp++;
+    if (nextExp > 9) endGame();
+  }
+
+  /* ── 리셋 (시작 버튼 있는 상태로) ── */
+  function resetToReady() {
+    nextExp = 1;
+    stopTimer(); elapsed = 0;
+    $('timer').textContent = '00.00';
+    $('msg').textContent = '';
+    $('result-box').style.display = 'none';
+    $('countdown').textContent = '';
+    buildGrid(false);
+    $('start-btn').disabled = false;
+  }
+
+  function stopTimer() { clearInterval(timerInt); timerInt = null; }
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  /* ── 게임 시작 ── */
+  async function startGame() {
+    $('start-btn').disabled = true;
+    $('result-box').style.display = 'none';
+    $('msg').textContent = '';
+    nextExp = 1; stopTimer(); elapsed = 0;
+    $('timer').textContent = '00.00';
+    buildGrid(true);
+    const cd = $('countdown');
+    for (const s of ['3', '2', '1', '시작!']) {
+      cd.textContent = s;
+      await delay(s === '시작!' ? 700 : 820);
+    }
+    cd.textContent = '';
+    cards.forEach(c => c.classList.remove('hidden'));
+    gameActive = true;
+    startMs = performance.now();
+    timerInt = setInterval(() => {
+      elapsed = performance.now() - startMs;
+      $('timer').textContent = fmt(elapsed);
+    }, 30);
+  }
+
+  /* ── 게임 종료 ── */
+  async function endGame() {
+    gameActive = false; stopTimer();
+    const ms = elapsed;
+
+    $('popup-my-time').textContent = fmt(ms);
+    $('popup-my-rank').innerHTML = '';
+    $('popup-lb-rows').innerHTML = '<div style="text-align:center;padding:1rem;font-size:13px;color:var(--text2);">기록 저장 중...</div>';
+    $('popup-overlay').classList.add('show');
+
+    if (window._fbConfigured) {
+      try {
+        await window._fbSaveScore(nickname, ms);
+      } catch(e) {
+        console.error('save failed', e);
+      }
+      try {
+        const rows = await window._fbLoadLeaderboard();
+        renderPopupLB(rows, nickname, ms);
+      } catch(e) {
+        $('popup-lb-rows').innerHTML = '<div style="text-align:center;font-size:13px;color:var(--text2);">랭킹 로드 실패</div>';
+      }
+    } else {
+      renderPopupLB(null, nickname, ms);
+    }
+  }
+
+  function renderPopupLB(rows, myName, myMs) {
+    const medals = ['🥇','🥈','🥉'];
+    if (!rows || rows.length === 0) {
+      $('popup-lb-rows').innerHTML = '<div style="text-align:center;padding:1rem;font-size:13px;color:var(--text2);">아직 랭킹 기록이 없습니다</div>';
+      $('popup-my-rank').innerHTML = '첫 번째 기록!';
+      return;
+    }
+    const myRankIdx = rows.findIndex(r => r.name === myName && r.ms === myMs);
+    if (myRankIdx >= 0) {
+      $('popup-my-rank').innerHTML = '<span>' + (myRankIdx + 1) + '위</span> / ' + rows.length + '명';
+    }
+    const html = rows.map((r, i) => {
+      const isMe = r.name === myName && r.ms === myMs;
+      const rankLabel = i < 3 ? medals[i] : (i + 1);
+      return '<div class="lb-row' + (isMe ? ' me' : '') + '">'
+        + '<span class="lb-rank">' + rankLabel + '</span>'
+        + '<span class="lb-name">' + r.name + '</span>'
+        + '<span class="lb-time">' + fmt(r.ms) + '</span>'
+        + '</div>';
+    }).join('');
+    $('popup-lb-rows').innerHTML = html;
+  }
+
+  $('start-btn').addEventListener('click', startGame);
+  $('restart-btn').addEventListener('click', resetToReady);
+  $('popup-close').addEventListener('click', () => {
+    $('popup-overlay').classList.remove('show');
+    resetToReady();
+  });
+  $('popup-restart').addEventListener('click', () => {
+    $('popup-overlay').classList.remove('show');
+    resetToReady();
+  });
+  $('popup-overlay').addEventListener('click', e => {
+    if (e.target === $('popup-overlay')) {
+      $('popup-overlay').classList.remove('show');
+      resetToReady();
+    }
+  });
+</script>
+</body>
+</html>
